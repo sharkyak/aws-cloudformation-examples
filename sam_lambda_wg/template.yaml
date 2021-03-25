@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  lambda_wg_up_and_down
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  WgUp:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: wg_up/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Role: arn:aws:iam::914509945835:role/service-role/run_wireguard_stack-role-nwqm57n7
+      Events:
+        WgUp:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /wgup
+            Method: get
+
+  WgDown:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: wg_down/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Role: arn:aws:iam::914509945835:role/service-role/run_wireguard_stack-role-nwqm57n7
+      Events:
+        WgUp:
+          Type: Api
+          Properties:
+            Path: /wgdown
+            Method: get

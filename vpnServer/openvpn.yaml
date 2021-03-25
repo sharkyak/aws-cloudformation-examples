@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  sshkey:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Amazon EC2 Key Pair
+
+Outputs:
+  ip:
+    Description: ip of an instance
+    Value: !GetAtt vpnServer.PublicIp
+
+Resources:
+  sg:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: openvpn sg
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: TCP
+          FromPort: 22
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: UDP
+          FromPort: 1194
+          ToPort: 1194
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: UDP
+          FromPort: 51820
+          ToPort: 51820
+
+  vpnServer:
+    DependsOn: sg
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-040972c41f60fe440
+      InstanceType: t4g.nano
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+
+          ip=$(ip a s | grep ens5 | grep inet | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
+          protocol=udp
+          port=1194
+          portw=51820
+          iptables_path=$(command -v iptables)
+
+          echo "[Unit]
+          Before=network.target
+          [Service]
+          Type=oneshot
+          ExecStart=$iptables_path -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
+          ExecStart=$iptables_path -I INPUT -p $protocol --dport $port -j ACCEPT
+          ExecStart=$iptables_path -I FORWARD -s 10.8.0.0/24 -j ACCEPT
+          ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+          ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
+          ExecStop=$iptables_path -D INPUT -p $protocol --dport $port -j ACCEPT
+          ExecStop=$iptables_path -D FORWARD -s 10.8.0.0/24 -j ACCEPT
+          ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+          RemainAfterExit=yes
+          [Install]
+          WantedBy=multi-user.target" > /etc/systemd/system/openvpn-iptables.service
+
+          echo "[Unit]
+          Before=network.target
+          [Service]
+          Type=oneshot
+          ExecStart=$iptables_path -t nat -A POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to $ip
+          ExecStart=$iptables_path -I INPUT -p udp --dport $portw -j ACCEPT
+          ExecStart=$iptables_path -I FORWARD -s 10.7.0.0/24 -j ACCEPT
+          ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+          ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to $ip
+          ExecStop=$iptables_path -D INPUT -p udp --dport $portw -j ACCEPT
+          ExecStop=$iptables_path -D FORWARD -s 10.7.0.0/24 -j ACCEPT
+          ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+          RemainAfterExit=yes
+          [Install]
+          WantedBy=multi-user.target" > /etc/systemd/system/wg-iptables.service
+
+          systemctl daemon-reload
+          iptables -t nat -F
+          systemctl restart openvpn-iptables.service
+          systemctl restart wg-iptables.service
+      Tags:
+        - Key: Name
+          Value: openvpn
+      SecurityGroups:
+        - !Ref sg
+      KeyName:
+        Ref: sshkey
+
+  dnsRecord:
+    DependsOn: vpnServer
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: Z04572521PVR2LJ65DFDG
+      Name: vpn.awsdomain.tk
+      ResourceRecords:
+        - !GetAtt vpnServer.PublicIp
+      TTL: 300
+      Type: A
