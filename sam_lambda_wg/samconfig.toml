@@ -3,7 +3,7 @@ version = 0.1
 [default.deploy]
 [default.deploy.parameters]
 stack_name = "wg-lambda"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-np84hbax4sws"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1u9yy0s99vxke"
 s3_prefix = "wg-lambda"
 region = "us-east-1"
 confirm_changeset = true
