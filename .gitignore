@@ -1,4 +1,2 @@
-venv
 .vscode
-.aws-sam
 .DS_Store
