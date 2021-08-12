@@ -93,8 +93,8 @@ Resources:
     DependsOn: vpnServer
     Type: 'AWS::Route53::RecordSet'
     Properties:
-      HostedZoneId: Z04572521PVR2LJ65DFDG
-      Name: vpn.awsdomain.tk
+      HostedZoneId: Z08360562PFG1GR8FNX7E
+      Name: vpn.akawsdev.xyz
       ResourceRecords:
         - !GetAtt vpnServer.PublicIp
       TTL: 300

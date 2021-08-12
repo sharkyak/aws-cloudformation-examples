@@ -44,8 +44,8 @@ Resources:
     Properties:
       StageName: api
       Domain:
-        DomainName: wg.awsdomain.tk
-        CertificateArn: arn:aws:acm:us-east-1:914509945835:certificate/488725d1-58ca-4937-8e99-251d1aafbcc2
+        DomainName: wg.akawsdev.xyz
+        CertificateArn: arn:aws:acm:us-east-1:914509945835:certificate/55dc7fd9-8ce4-496a-a6a0-fcc0260d530d
         Route53:
-          HostedZoneId: Z04572521PVR2LJ65DFDG
+          HostedZoneId: Z08360562PFG1GR8FNX7E
           DistributionDomainName: wg
